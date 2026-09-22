@@ -21,6 +21,8 @@ import net.tfminecraft.marketblock.loader.CategoryLoader;
 import net.tfminecraft.marketblock.trade.Category;
 
 public class CategoryView {
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     public void categoryView(Inventory inv, Player p) {
         boolean open = false;
         if(inv == null) {
@@ -47,6 +49,8 @@ public class CategoryView {
 		if(open) p.openInventory(inv);
 	}
 
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     public ItemStack createCategoryItem(Category cat) {
         ItemStack i = cat.getItem();
         ItemMeta m = i.getItemMeta();
