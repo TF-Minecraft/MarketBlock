@@ -6,15 +6,22 @@
 
     <groupId>net.tfminecraft</groupId>
     <artifactId>marketblock</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
 
     <properties>
-        <cooking.version>0.1.5-ALPHA</cooking.version>
+        <cooking.version>0.1.6-ALPHA</cooking.version>
         <denareconomy.version>0.1.9</denareconomy.version>
-        <tlibs.version>1.1.0</tlibs.version>
-        <maven.compiler.release>25</maven.compiler.release>
+        <tlibs.version>1.1.1</tlibs.version>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>spigot-snapshots</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -35,11 +42,11 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>local</groupId>
+            <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.21.8</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/spigot-api.jar</systemPath>
+            <version>1.21.10-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+
         </dependency>
         <dependency>
             <groupId>net.tfminecraft</groupId>
