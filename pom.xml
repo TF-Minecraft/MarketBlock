@@ -9,6 +9,7 @@
     <version>0.0.2</version>
 
     <properties>
+        <tlibs.version>1.0-tfmc-bbac27e3055d</tlibs.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -22,11 +23,14 @@
             <systemPath>${project.basedir}/libs/gson-2.10.1.jar</systemPath>
         </dependency>
         <dependency>
-            <groupId>local</groupId>
-            <artifactId>TLibs</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/TLibs.jar</systemPath>
+            <groupId>me.plugins</groupId>
+            <artifactId>tlibs</artifactId>
+            <version>${tlibs.version}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <!-- The server supplies TLibs and its integrations. -->
+                <exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>local</groupId>
@@ -70,7 +74,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
             </plugin>
-</plugins>
+        </plugins>
     </build>
 
 </project>
