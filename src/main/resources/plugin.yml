@@ -1,4 +1,4 @@
-main: net.tfminecraft.MarketBlock
+main: net.tfminecraft.marketblock.MarketBlock
 api-version: '1.21.10'
 name: MarketBlock
 version: ${project.version}
