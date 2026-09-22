@@ -6,12 +6,12 @@
 
     <groupId>net.tfminecraft</groupId>
     <artifactId>marketblock</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
 
     <properties>
-        <cooking.version>0.1.5-ALPHA</cooking.version>
+        <cooking.version>0.1.6-ALPHA</cooking.version>
         <denareconomy.version>0.1.9</denareconomy.version>
-        <tlibs.version>1.1.0</tlibs.version>
+        <tlibs.version>1.1.1</tlibs.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
