@@ -24,6 +24,8 @@ import net.tfminecraft.marketblock.util.DemandFormatter;
 import net.tfminecraft.marketblock.util.PriceCalculator;
 
 public class TradeView {
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     public void tradeView(Inventory inv, Player p, Category cat) {
         boolean open = false;
         if(inv == null) {
@@ -52,6 +54,8 @@ public class TradeView {
 		if(open) p.openInventory(inv);
 	}
 
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     private ItemStack createTradeItem(Trade trade, Category cat) {
         ItemStack i = trade.getIconItem();
         if (i == null || i.getItemMeta() == null) {
@@ -80,6 +84,8 @@ public class TradeView {
         return i;
     }
 
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     private ItemStack getBackButton() {
         ItemStack i = new ItemStack(Material.BARRIER, 1);
         ItemMeta m = i.getItemMeta();
@@ -88,6 +94,8 @@ public class TradeView {
         return i;
     }
 
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     private String getPlainName(ItemStack item) {
         ItemMeta m = item.getItemMeta();
         if (m.hasDisplayName()) {

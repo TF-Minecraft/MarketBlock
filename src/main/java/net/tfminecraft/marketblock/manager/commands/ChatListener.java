@@ -13,6 +13,8 @@ import net.tfminecraft.marketblock.trade.Trade;
 
 public class ChatListener implements Listener {
 
+    // Retain Bukkit chat-event ordering and String message semantics for existing integrations.
+    @SuppressWarnings("deprecation")
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();

@@ -44,6 +44,8 @@ public class Category {
         return colorHex;
     }
 
+    // Keep the existing legacy text representation, formatting, and exact-string comparisons.
+    @SuppressWarnings("deprecation")
     public String getTradesTitle() {
         return StringFormatter.formatHex(colorHex + ChatColor.stripColor(name) + " Trades");
     }
