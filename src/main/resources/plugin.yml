@@ -1,7 +1,7 @@
 main: net.tfminecraft.MarketBlock
 api-version: 1.20
 name: MarketBlock
-version: 1.0
+version: ${project.version}
 author: Drefvelin
 
 depend: [DenarEconomy, TLibs]
