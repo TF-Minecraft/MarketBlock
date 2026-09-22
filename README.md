@@ -1,41 +1,25 @@
-# Marketblock
+# MarketBlock
 
-Technical documentation is maintained in [TF-Minecraft/Docs](https://github.com/TF-Minecraft/Docs/blob/main/projects/MarketBlock/README.md).
+> A market for gathered goods, with prices that respond to demand.
 
-Use that project index for setup, configuration, architecture, integration and testing guides. This repository contains the source and project-specific assets.
+MarketBlock gives TF-Minecraft players a place to sell resources for denars. Its market interface groups goods into familiar categories, shows the current offer, and turns gathered materials into income through DenarEconomy.
 
-## TLibs build dependency
+Prices respond to activity: selling a good lowers its demand, while demand recovers over time. Food condition also matters, with fresh, stale, and rotten goods receiving different returns. That makes the choice of what to sell, and when, part of the trading experience.
 
-TLibs is a versioned Maven `provided` dependency. From this repository, prepare
-it once with the shared installer, then build as usual:
+## Features
 
-```sh
-python3 ../tlibs/tools/install-dependency.py --pom pom.xml
-mvn clean verify
-```
+- **Browse by category** — find offers for wood, farm produce, metals, minerals, stone, alchemy supplies, and fish.
+- **Demand-based prices** — see offers change as players sell goods and market demand rebuilds.
+- **Freshness-aware sales** — account for food condition when calculating the payment, including mixed-condition batches.
+- **Clear sale feedback** — show the amount sold, denars received, and any freshness adjustments.
+- **Custom goods support** — trade both ordinary Minecraft resources and supported custom items through the same market.
 
-See [TLibs dependency setup](https://github.com/TF-Minecraft/TLibs/blob/5da8e77d0e0696bbff7d7064a2644072da9c6428/DEPENDENCIES.md)
-for public release installation, offline builds and rollback.
-Other declared build dependencies still need their usual preparation.
-Use JDK 25 for this TLibs binary; the server must also run Java 25.
+## In the world
 
-Builds and server runtime require Java 25. Local builds default to [TLibs 1.1.0](https://github.com/TF-Minecraft/TLibs/releases/tag/v1.1.0); CI resolves the latest published stable TLibs release for each build, verifies its checksum, and uses its exact version throughout that job.
+MarketBlock is the server market counterpart to player-run shops: a dedicated market block provides the selling interface, while the shared denar economy handles the earnings.
 
-## Shared plugin dependencies
+## Documentation
 
-Build and release workflows install checksum-verified plugin releases through
-[TLibs' shared installer](https://github.com/TF-Minecraft/TLibs/blob/main/DEPENDENCIES.md).
-CI selects the latest published versions; local builds use the explicit Maven
-version properties. Shared plugins use `provided` scope and remain separate
-server plugins. Each build records exact versions and checksums in
-`.build/plugin-dependencies.json` alongside its JAR.
+[Project documentation](https://github.com/TF-Minecraft/Docs/blob/main/projects/MarketBlock/README.md)
 
-From this checkout, with the TLibs repository next to it:
-
-```sh
-python3 ../tlibs/tools/install-plugins.py --pom pom.xml
-```
-
-Prepare any remaining third-party inputs with `.github/scripts/prepare-release.sh`
-before running Maven. Any source-unavailable inputs remain private and checksum-pinned wherever declared; see the installer
-documentation for authentication and reproducible rebuilds.
+Technical documentation is maintained in [TF-Minecraft/Docs](https://github.com/TF-Minecraft/Docs).
