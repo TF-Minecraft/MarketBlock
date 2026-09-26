@@ -86,5 +86,6 @@ public class MarketBlock extends JavaPlugin{
 
 	public void reload() {
 		loadConfigs();
+		tradeManager.rescheduleDemandCycle();
 	}
 }

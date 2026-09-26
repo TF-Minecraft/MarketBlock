@@ -7,8 +7,9 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-import net.tfminecraft.tlibs.interfaces.LoaderInterface;
 import net.tfminecraft.marketblock.Cache;
+import net.tfminecraft.marketblock.util.DemandSchedule;
+import net.tfminecraft.tlibs.interfaces.LoaderInterface;
 
 public class ConfigLoader implements LoaderInterface{
 
@@ -22,6 +23,8 @@ public class ConfigLoader implements LoaderInterface{
         }
 		
 		Cache.marketBlock = config.getString("market-block");
+		Cache.demandRecoveryHours = DemandSchedule.normalizeHours(
+				config.getDouble("demand-recovery-hours", DemandSchedule.DEFAULT_HOURS));
 		
 		Cache.slots = config.getIntegerList("slots");
 

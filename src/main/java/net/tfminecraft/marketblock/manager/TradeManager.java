@@ -14,6 +14,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import net.tfminecraft.marketblock.Cache;
 import net.tfminecraft.marketblock.MarketBlock;
@@ -25,12 +26,14 @@ import net.tfminecraft.marketblock.loader.CategoryLoader;
 import net.tfminecraft.marketblock.loader.TradeLoader;
 import net.tfminecraft.marketblock.trade.Category;
 import net.tfminecraft.marketblock.trade.Trade;
+import net.tfminecraft.marketblock.util.DemandSchedule;
 import net.tfminecraft.marketblock.util.InventoryUtils;
 import net.tfminecraft.marketblock.util.PriceCalculator;
 import net.tfminecraft.marketblock.util.SaleTake;
 
 public class TradeManager implements Listener {
     InventoryManager inv = new InventoryManager();
+    private BukkitTask demandTask;
 
     public void update() {
         for(Player p : Bukkit.getOnlinePlayers()) {
@@ -61,19 +64,32 @@ public class TradeManager implements Listener {
     }
 
     public void start() {
-        demandCycle();
+        scheduleDemand(0L);
     }
 
-    public void demandCycle() {
-        new BukkitRunnable() {
+    public void rescheduleDemandCycle() {
+        scheduleDemand(DemandSchedule.periodTicks(Cache.demandRecoveryHours));
+    }
+
+    private void scheduleDemand(long delayTicks) {
+        if (demandTask != null) {
+            demandTask.cancel();
+            demandTask = null;
+        }
+        long period = DemandSchedule.periodTicks(Cache.demandRecoveryHours);
+        demandTask = new BukkitRunnable() {
             @Override
             public void run() {
-                for(Trade t : TradeLoader.getTrades().values()) {
-                    t.demand();
-                }
-                update();
+                recoverDemand();
             }
-        }.runTaskTimer(MarketBlock.plugin, 0, 60*60*20L);
+        }.runTaskTimer(MarketBlock.plugin, delayTicks, period);
+    }
+
+    public void recoverDemand() {
+        for (Trade t : TradeLoader.getTrades().values()) {
+            t.demand();
+        }
+        update();
     }
     
     @EventHandler
