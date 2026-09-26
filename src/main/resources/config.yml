@@ -1,5 +1,7 @@
 slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
 market-block: iaf(tfmc:market_block)
+# Hours between demand recovery ticks. Each tick raises every item's demand.
+demand-recovery-hours: 4
 freshness-price:
   fresh: 1.0
   stale: 0.5

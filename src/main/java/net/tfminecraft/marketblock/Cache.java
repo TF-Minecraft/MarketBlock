@@ -7,11 +7,13 @@ import java.util.Map;
 
 import org.bukkit.block.Block;
 
+import net.tfminecraft.marketblock.util.DemandSchedule;
 import net.tfminecraft.tlibs.TLibs;
 
 public class Cache {
     public static List<Integer> slots = new ArrayList<>();
     public static String marketBlock;
+    public static double demandRecoveryHours = DemandSchedule.DEFAULT_HOURS;
     public static final Map<String, Double> freshnessPrice = new LinkedHashMap<>();
 
     public static boolean blockIsMarketBlock(Block b) {
