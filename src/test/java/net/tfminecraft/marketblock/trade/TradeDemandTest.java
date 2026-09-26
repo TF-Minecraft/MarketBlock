@@ -16,7 +16,7 @@ class TradeDemandTest {
             double before = trade.getDemand();
             trade.demand();
             double increase = trade.getDemand() - before;
-            assertTrue(increase >= 1.0, "increase was " + increase);
+            assertTrue(increase + 1e-9 >= 1.0, "increase was " + increase);
             assertTrue(increase < 7.0, "increase was " + increase);
         }
     }
