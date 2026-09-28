@@ -87,6 +87,19 @@ class ChatListenerTest {
     }
 
     @Test
+    void losingPermissionDuringALateMessageLeavesTheNewConversationAlone() {
+        MarketblockConversation old = start(2);
+        MarketblockConversation current = start(0);
+        tester.admin = false;
+
+        AsyncPlayerChatEvent event = new AsyncPlayerChatEvent(true, tester.player, "hello", new HashSet<>());
+        listener.answerIfCurrent(event, tester.player, old);
+
+        assertFalse(event.isCancelled());
+        assertSame(current, ConversationManager.getConversation(tester.player));
+    }
+
+    @Test
     void aLateMessageForAReplacedConversationLeavesTheNewOneAlone() {
         MarketblockConversation old = start(2);
         MarketblockConversation current = start(0);

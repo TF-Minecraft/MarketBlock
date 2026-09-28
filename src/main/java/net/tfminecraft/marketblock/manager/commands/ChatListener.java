@@ -26,12 +26,6 @@ public class ChatListener implements Listener {
 
         if (convo == null) return;
 
-        // Permission may have been removed since /marketblock add; let the message reach chat.
-        if (!player.hasPermission(CommandManager.ADMIN_PERMISSION)) {
-            ConversationManager.endConversation(player);
-            return;
-        }
-
         answerIfCurrent(event, player, convo);
     }
 
@@ -44,6 +38,11 @@ public class ChatListener implements Listener {
         String message = event.getMessage();
         synchronized (convo) {
             if (ConversationManager.getConversation(player) != convo) return;
+            // Permission may have been removed since /marketblock add; let the message reach chat.
+            if (!player.hasPermission(CommandManager.ADMIN_PERMISSION)) {
+                ConversationManager.finishConversation(player, convo);
+                return;
+            }
             event.setCancelled(true);
             if (TradeInput.isCancel(message)) {
                 if (ConversationManager.finishConversation(player, convo)) {
