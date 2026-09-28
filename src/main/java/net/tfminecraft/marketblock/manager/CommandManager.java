@@ -16,11 +16,19 @@ import net.tfminecraft.marketblock.trade.Trade;
 
 public class CommandManager implements CommandExecutor {
 
+    public static final String ADMIN_PERMISSION = "marketblock.admin";
+
     public String cmd1 = "marketblock";
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase(cmd1)) return true;
+
+        // plugin.yml also guards the command, but every subcommand here edits live trades.
+        if (!sender.hasPermission(ADMIN_PERMISSION)) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return true;
+        }
 
         if (args.length == 0) {
             sender.sendMessage("§cUsage: /marketblock add OR /marketblock delete <id>");
@@ -52,7 +60,7 @@ public class CommandManager implements CommandExecutor {
 
             MarketblockConversation convo = new MarketblockConversation(player, item);
             ConversationManager.startConversation(player, convo);
-            player.sendMessage("§aPlease enter the trade ID in chat:");
+            player.sendMessage("§aPlease enter the trade ID in chat, or type §ecancel§a to stop:");
             return true;
         }
 

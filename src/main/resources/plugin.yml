@@ -9,5 +9,11 @@ softdepend: [Cooking]
 
 commands:
   marketblock:
-    useage: /<command>
+    usage: /<command>
     description: MarketBlock Command
+    permission: marketblock.admin
+
+permissions:
+  marketblock.admin:
+    description: Add, delete, reset and reload market trades
+    default: op

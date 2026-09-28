@@ -2,12 +2,14 @@ package net.tfminecraft.marketblock.manager.commands;
 
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ConversationManager {
 
-    private static final HashMap<UUID, MarketblockConversation> conversations = new HashMap<>();
+    // Read from the async chat thread and written from the main thread.
+    private static final Map<UUID, MarketblockConversation> conversations = new ConcurrentHashMap<>();
 
     public static void startConversation(Player player, MarketblockConversation convo) {
         conversations.put(player.getUniqueId(), convo);

@@ -1,6 +1,7 @@
 package net.tfminecraft.marketblock.manager.commands;
 
 import net.tfminecraft.marketblock.loader.TradeLoader;
+import net.tfminecraft.marketblock.manager.CommandManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -15,6 +16,7 @@ public class TabCompletion implements TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (!command.getName().equalsIgnoreCase("marketblock")) return completions;
+        if (!sender.hasPermission(CommandManager.ADMIN_PERMISSION)) return completions;
 
         if (args.length == 1) {
             String prefix = args[0].toLowerCase();

@@ -4,10 +4,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import net.tfminecraft.tlibs.TLibs;
 import net.tfminecraft.marketblock.loader.CategoryLoader;
 import net.tfminecraft.marketblock.loader.TradeLoader;
+import net.tfminecraft.marketblock.manager.CommandManager;
 import net.tfminecraft.marketblock.trade.Category;
 import net.tfminecraft.marketblock.trade.Trade;
 
@@ -22,8 +24,20 @@ public class ChatListener implements Listener {
 
         if (convo == null) return;
 
+        // Permission may have been removed since /marketblock add; let the message reach chat.
+        if (!player.hasPermission(CommandManager.ADMIN_PERMISSION)) {
+            ConversationManager.endConversation(player);
+            return;
+        }
+
         event.setCancelled(true);
         String message = event.getMessage();
+
+        if (TradeInput.isCancel(message)) {
+            ConversationManager.endConversation(player);
+            player.sendMessage("§eTrade creation cancelled.");
+            return;
+        }
 
         switch (convo.getStep()) {
             case 0 -> {
@@ -37,15 +51,15 @@ public class ChatListener implements Listener {
                 player.sendMessage("§aEnter the demand limit:");
             }
             case 1 -> {
-                try {
-                    double demandLimit = Double.parseDouble(message);
-                    convo.setDemandLimit(demandLimit);
-                    player.sendMessage("§aDemand limit set to: " + demandLimit);
-                    convo.nextStep();
-                    player.sendMessage("§aEnter the group:");
-                } catch (NumberFormatException e) {
-                    player.sendMessage("§cInvalid number. Please enter a valid demand limit.");
+                Double demandLimit = TradeInput.demandLimit(message);
+                if (demandLimit == null) {
+                    player.sendMessage("§cInvalid number. Enter a demand limit of at least 1.");
+                    return;
                 }
+                convo.setDemandLimit(demandLimit);
+                player.sendMessage("§aDemand limit set to: " + demandLimit);
+                convo.nextStep();
+                player.sendMessage("§aEnter the group:");
             }
             case 2 -> {
                 try {
@@ -59,26 +73,26 @@ public class ChatListener implements Listener {
                 }
             }
             case 3 -> {
-                try {
-                    double priceChange = Double.parseDouble(message);
-                    convo.setPriceChange(priceChange);
-                    player.sendMessage("§aPrice change set to: " + priceChange);
-                    convo.nextStep();
-                    player.sendMessage("§aEnter the resting price:");
-                } catch (NumberFormatException e) {
-                    player.sendMessage("§cInvalid number. Please enter a valid price change.");
+                Double priceChange = TradeInput.priceChange(message);
+                if (priceChange == null) {
+                    player.sendMessage("§cInvalid number. Enter a price change of 0 or more.");
+                    return;
                 }
+                convo.setPriceChange(priceChange);
+                player.sendMessage("§aPrice change set to: " + priceChange);
+                convo.nextStep();
+                player.sendMessage("§aEnter the resting price:");
             }
             case 4 -> {
-                try {
-                    double restingPrice = Double.parseDouble(message);
-                    convo.setRestingPrice(restingPrice);
-                    player.sendMessage("§aResting price set to: " + restingPrice);
-                    convo.nextStep();
-                    player.sendMessage("§aEnter the category:");
-                } catch (NumberFormatException e) {
-                    player.sendMessage("§cInvalid number. Please enter a valid resting price.");
+                Double restingPrice = TradeInput.restingPrice(message);
+                if (restingPrice == null) {
+                    player.sendMessage("§cInvalid number. Enter a resting price above 0.");
+                    return;
                 }
+                convo.setRestingPrice(restingPrice);
+                player.sendMessage("§aResting price set to: " + restingPrice);
+                convo.nextStep();
+                player.sendMessage("§aEnter the category:");
             }
             case 5 -> {
                 Category cat = CategoryLoader.getByString(message);
@@ -93,6 +107,11 @@ public class ChatListener implements Listener {
                 player.sendMessage("§aTrade successfully created!");
             }
         }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        ConversationManager.endConversation(event.getPlayer());
     }
 
     private boolean saveTrade(Player p, MarketblockConversation convo) {
