@@ -22,5 +22,13 @@ public class ConversationManager {
     public static void endConversation(Player player) {
         conversations.remove(player.getUniqueId());
     }
+
+    /**
+     * Ends this exact conversation and reports whether this call did so. Only one caller can win,
+     * so a trade is saved only if its final answer arrived before the player quit or cancelled.
+     */
+    public static boolean finishConversation(Player player, MarketblockConversation convo) {
+        return conversations.remove(player.getUniqueId(), convo);
+    }
 }
 

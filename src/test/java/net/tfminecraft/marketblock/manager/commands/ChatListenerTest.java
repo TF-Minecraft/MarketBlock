@@ -82,6 +82,32 @@ class ChatListenerTest {
         assertNull(ConversationManager.getConversation(tester.player));
     }
 
+    @Test
+    void aConversationEndedByQuittingCannotThenBeFinished() {
+        MarketblockConversation convo = start(5);
+
+        listener.onQuit(new PlayerQuitEvent(tester.player, Component.text("left"), QuitReason.DISCONNECTED));
+
+        assertFalse(ConversationManager.finishConversation(tester.player, convo));
+    }
+
+    @Test
+    void onlyOneCallerCanFinishAConversation() {
+        MarketblockConversation convo = start(5);
+
+        assertTrue(ConversationManager.finishConversation(tester.player, convo));
+        assertFalse(ConversationManager.finishConversation(tester.player, convo));
+    }
+
+    @Test
+    void finishingDoesNotEndANewerConversation() {
+        MarketblockConversation old = start(5);
+        MarketblockConversation current = start(0);
+
+        assertFalse(ConversationManager.finishConversation(tester.player, old));
+        assertSame(current, ConversationManager.getConversation(tester.player));
+    }
+
     private MarketblockConversation start(int step) {
         MarketblockConversation convo = new MarketblockConversation(tester.player, null);
         for (int i = 0; i < step; i++) convo.nextStep();

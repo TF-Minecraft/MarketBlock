@@ -1,5 +1,6 @@
 package net.tfminecraft.marketblock.manager.commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -7,6 +8,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import net.tfminecraft.tlibs.TLibs;
+import net.tfminecraft.marketblock.MarketBlock;
 import net.tfminecraft.marketblock.loader.CategoryLoader;
 import net.tfminecraft.marketblock.loader.TradeLoader;
 import net.tfminecraft.marketblock.manager.CommandManager;
@@ -101,10 +103,13 @@ public class ChatListener implements Listener {
                 }
                 convo.setCategory(cat);
                 player.sendMessage("§aCategory set to: " + cat.getId());
-                // Done!
-                ConversationManager.endConversation(player);
-                if (!saveTrade(player, convo)) return;
-                player.sendMessage("§aTrade successfully created!");
+                // Done! Claim the conversation first, so a quit that got there first stops the save.
+                if (!ConversationManager.finishConversation(player, convo)) return;
+                // Chat arrives on an async thread; trades and trades.yml belong to the main thread.
+                Bukkit.getScheduler().runTask(MarketBlock.plugin, () -> {
+                    if (!saveTrade(player, convo)) return;
+                    player.sendMessage("§aTrade successfully created!");
+                });
             }
         }
     }
