@@ -74,6 +74,31 @@ class ChatListenerTest {
     }
 
     @Test
+    void aLateMessageForAFinishedConversationReachesChat() {
+        MarketblockConversation old = start(5);
+        ConversationManager.finishConversation(tester.player, old);
+
+        // The handler looked the conversation up before another answer finished it.
+        AsyncPlayerChatEvent event = new AsyncPlayerChatEvent(true, tester.player, "hello", new HashSet<>());
+        listener.answerIfCurrent(event, tester.player, old);
+
+        assertFalse(event.isCancelled());
+        assertTrue(tester.messages.isEmpty());
+    }
+
+    @Test
+    void aLateMessageForAReplacedConversationLeavesTheNewOneAlone() {
+        MarketblockConversation old = start(2);
+        MarketblockConversation current = start(0);
+
+        AsyncPlayerChatEvent event = new AsyncPlayerChatEvent(true, tester.player, "cancel", new HashSet<>());
+        listener.answerIfCurrent(event, tester.player, old);
+
+        assertFalse(event.isCancelled());
+        assertSame(current, ConversationManager.getConversation(tester.player));
+    }
+
+    @Test
     void quittingEndsTheConversation() {
         start(0);
 

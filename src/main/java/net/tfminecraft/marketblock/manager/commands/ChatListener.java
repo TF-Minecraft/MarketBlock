@@ -32,12 +32,19 @@ public class ChatListener implements Listener {
             return;
         }
 
-        event.setCancelled(true);
-        String message = event.getMessage();
+        answerIfCurrent(event, player, convo);
+    }
 
-        // One answer at a time per conversation, and none after it has been cancelled or finished.
+    /**
+     * One answer at a time per conversation. A late message for a conversation that has already
+     * been cancelled, finished or replaced is not an answer, so it goes to chat as normal.
+     */
+    @SuppressWarnings("deprecation")
+    void answerIfCurrent(AsyncPlayerChatEvent event, Player player, MarketblockConversation convo) {
+        String message = event.getMessage();
         synchronized (convo) {
             if (ConversationManager.getConversation(player) != convo) return;
+            event.setCancelled(true);
             if (TradeInput.isCancel(message)) {
                 if (ConversationManager.finishConversation(player, convo)) {
                     player.sendMessage("§eTrade creation cancelled.");
