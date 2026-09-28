@@ -35,12 +35,20 @@ public class ChatListener implements Listener {
         event.setCancelled(true);
         String message = event.getMessage();
 
-        if (TradeInput.isCancel(message)) {
-            ConversationManager.endConversation(player);
-            player.sendMessage("§eTrade creation cancelled.");
-            return;
+        // One answer at a time per conversation, and none after it has been cancelled or finished.
+        synchronized (convo) {
+            if (ConversationManager.getConversation(player) != convo) return;
+            if (TradeInput.isCancel(message)) {
+                if (ConversationManager.finishConversation(player, convo)) {
+                    player.sendMessage("§eTrade creation cancelled.");
+                }
+                return;
+            }
+            answer(player, convo, message);
         }
+    }
 
+    private void answer(Player player, MarketblockConversation convo, String message) {
         switch (convo.getStep()) {
             case 0 -> {
                 if (TradeLoader.getTradeById(message) != null) {
@@ -97,14 +105,14 @@ public class ChatListener implements Listener {
                 player.sendMessage("§aEnter the category:");
             }
             case 5 -> {
+                // Done! Claim the conversation first, so a quit that got there first stops the save.
+                if (!ConversationManager.finishConversation(player, convo)) return;
                 Category cat = CategoryLoader.getByString(message);
                 if (cat == null || cat.getId().equalsIgnoreCase("unknown")) {
                     player.sendMessage("§cWarning, no category found, default selected");
                 }
                 convo.setCategory(cat);
                 player.sendMessage("§aCategory set to: " + cat.getId());
-                // Done! Claim the conversation first, so a quit that got there first stops the save.
-                if (!ConversationManager.finishConversation(player, convo)) return;
                 // Chat arrives on an async thread; trades and trades.yml belong to the main thread.
                 Bukkit.getScheduler().runTask(MarketBlock.plugin, () -> {
                     if (!saveTrade(player, convo)) return;
