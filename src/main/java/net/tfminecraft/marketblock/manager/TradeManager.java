@@ -140,7 +140,7 @@ public class TradeManager implements Listener {
 
         Trade trade = TradeLoader.getTradeById(id);
         if (trade == null) {
-            p.sendMessage("§cCould not find this trade.");
+            p.sendMessage("§cThe market no longer buys this.");
             return;
         }
 
