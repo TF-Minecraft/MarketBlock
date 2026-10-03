@@ -24,6 +24,12 @@ MarketBlock is the server market counterpart to player-run shops: a dedicated ma
 
 Technical documentation is maintained in [TF-Minecraft/Docs](https://github.com/TF-Minecraft/Docs).
 
+## Tests
+
+With Java 21 and the pinned plugin dependencies installed (the build workflow
+prepares them with `.github/scripts/prepare-release.sh`), run `mvn clean verify`.
+Tests use JUnit and run without a live Minecraft server.
+
 ## License
 
 Copyright (c) 2026 TF-Minecraft contributors.
