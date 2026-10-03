@@ -29,11 +29,11 @@ Technical documentation is maintained in [TF-Minecraft/Docs](https://github.com/
 Install the pinned shared plugin dependencies, then run the build with Java 21:
 
 ```sh
-python3 ../tlibs/tools/install-plugins.py --pom pom.xml --mode pinned
+python3 path/to/TLibs/tools/install-plugins.py --pom pom.xml --mode pinned
 mvn clean verify
 ```
 
-The installer needs a TLibs checkout beside this repository.
+Point the installer at your TLibs checkout.
 
 Tests use JUnit and run without a live Minecraft server.
 
