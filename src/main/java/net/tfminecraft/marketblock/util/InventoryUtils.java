@@ -20,11 +20,19 @@ public class InventoryUtils {
     }
 
     public static boolean hasEnough(Player p, String path, double requiredAmount) {
-        return getTotalAmount(p, path) >= requiredAmount;
+        return Double.isFinite(requiredAmount) && requiredAmount > 0
+                && requiredAmount <= Integer.MAX_VALUE
+                && requiredAmount == Math.rint(requiredAmount)
+                && getTotalAmount(p, path) >= requiredAmount;
     }
 
     public static SaleTake removeItems(Player p, String path, double amountToRemove) {
         SaleTake take = new SaleTake();
+        if (!Double.isFinite(amountToRemove) || amountToRemove <= 0
+                || amountToRemove > Integer.MAX_VALUE
+                || amountToRemove != Math.rint(amountToRemove)) {
+            return take;
+        }
         double remaining = amountToRemove;
 
         for (ItemStack item : p.getInventory().getContents()) {

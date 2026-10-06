@@ -1,5 +1,7 @@
 package net.tfminecraft.marketblock.util;
 
+import java.util.Locale;
+
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
@@ -25,6 +27,6 @@ public class FreshnessLookup {
             return "fresh";
         }
         String id = track.getCurrentStep().getId();
-        return id == null || id.isBlank() ? "fresh" : id.toLowerCase();
+        return id == null || id.isBlank() ? "fresh" : id.toLowerCase(Locale.ROOT);
     }
 }

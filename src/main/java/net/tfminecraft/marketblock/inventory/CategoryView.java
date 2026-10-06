@@ -29,6 +29,7 @@ public class CategoryView {
             inv = MarketBlock.plugin.getServer().createInventory(new MBHolder(MBGUI.CATEGORY, "none"), 54, "§7Market Categories");
             open = true;
         }
+        inv.clear();
         List<Category> categories = CategoryLoader.getAsList();
 		for(int i = 0; i < Cache.slots.size() && i < categories.size(); i++) {
             int slot = Cache.slots.get(i);

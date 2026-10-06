@@ -22,7 +22,7 @@ public class MarketblockConversation {
 
     public MarketblockConversation(Player player, ItemStack item) {
         this.player = player;
-        this.item = item;
+        this.item = item == null ? null : item.clone();
     }
 
     public Category getCategory() { return category; }
@@ -58,4 +58,3 @@ public class MarketblockConversation {
         return restingPrice;
     }
 }
-
