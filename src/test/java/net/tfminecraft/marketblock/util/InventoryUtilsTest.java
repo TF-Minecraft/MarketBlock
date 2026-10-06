@@ -104,7 +104,7 @@ class InventoryUtilsTest {
 
     @ParameterizedTest
     @ValueSource(doubles = {0, -0.0, -1, 0.5, 1.5, Double.NaN,
-            Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY})
+            Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 2147483648d, Double.MAX_VALUE})
     void invalidAmountsCannotAuthorizeATrade(double amount) {
         put(0, Material.CARROT, 10);
 
@@ -115,7 +115,7 @@ class InventoryUtilsTest {
 
     @ParameterizedTest
     @ValueSource(doubles = {0, -0.0, -1, 0.5, 1.5, Double.NaN,
-            Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY})
+            Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 2147483648d, Double.MAX_VALUE})
     void invalidRemovalAmountsLeaveEveryInventoryStackUntouched(double amount) {
         put(0, Material.CARROT, 3);
         put(1, Material.STONE, 7);
@@ -128,6 +128,19 @@ class InventoryUtilsTest {
         assertArrayEquals(before, player.getInventory().getContents());
         verifyNoInteractions(checker);
         freshness.verifyNoInteractions();
+    }
+
+    @Test
+    void largestSupportedWholeAmountKeepsAnExactRemovalTotal() {
+        Player owner = mock(Player.class);
+        PlayerInventory inventory = mock(PlayerInventory.class);
+        when(owner.getInventory()).thenReturn(inventory);
+        ItemStack stack = new ItemStack(Material.CARROT, Integer.MAX_VALUE);
+        when(inventory.getContents()).thenReturn(new ItemStack[] {stack});
+        assertTrue(InventoryUtils.hasEnough(owner, PATH, Integer.MAX_VALUE));
+        SaleTake taken = InventoryUtils.removeItems(owner, PATH, Integer.MAX_VALUE);
+        assertEquals(Integer.MAX_VALUE, taken.total());
+        assertEquals(0, stack.getAmount());
     }
 
     @Test
