@@ -37,7 +37,7 @@ public class Trade {
         this.category = convo.getCategory();
         category.addTrade(this);
         this.demandLimit = Math.max(1, convo.getDemandLimit());
-        this.demand = this.demandLimit / 2;
+        this.demand = clampDemand(this.demandLimit / 2);
         this.item = TLibs.getItemAPI().getChecker().getAsStringPath(convo.getItem());
         this.itemRestingPrice = convo.getRestingPrice();
         this.priceChange = convo.getPriceChange();
@@ -46,7 +46,7 @@ public class Trade {
     }
 
     public void resetDemand() {
-        demand = demandLimit / 2;
+        demand = clampDemand(demandLimit / 2);
     }
 
     public void setDemand(double demand) {

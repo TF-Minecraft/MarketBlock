@@ -32,6 +32,7 @@ public class TradeView {
             inv = MarketBlock.plugin.getServer().createInventory(new MBHolder(MBGUI.TRADE, cat.getId()), 54, cat.getTradesTitle());
             open = true;
         }
+        inv.clear();
         List<Trade> trades = new ArrayList<>(cat.getTrades());
         trades.sort(Comparator.comparingInt(Trade::getGroup));
 		for(int i = 0; i < Cache.slots.size() && i < trades.size(); i++) {
@@ -58,12 +59,10 @@ public class TradeView {
     @SuppressWarnings("deprecation")
     private ItemStack createTradeItem(Trade trade, Category cat) {
         ItemStack i = trade.getIconItem();
-        if (i == null || i.getItemMeta() == null) {
-            i = new ItemStack(Material.GRAY_DYE, 1);
-        }
-        ItemMeta m = i.getItemMeta();
+        ItemMeta m = i == null ? null : i.getItemMeta();
         if (m == null) {
-            return i;
+            i = new ItemStack(Material.GRAY_DYE, 1);
+            m = i.getItemMeta();
         }
         m.setDisplayName(StringFormatter.formatHex(cat.getColorHex() + getPlainName(i) + "#d6d3a7x#b6e66e" + trade.getAmount()));
         List<String> lore = new ArrayList<>();

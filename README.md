@@ -35,7 +35,11 @@ mvn clean verify
 
 Point the installer at your TLibs checkout.
 
-Tests use JUnit and run without a live Minecraft server.
+Tests use JUnit, MockBukkit, and Mockito without a live Minecraft server. They
+cover trade creation, purchases, menus, persistence, demand recovery, and the
+plugin lifecycle, including regressions for invalid quantities and stale state.
+`mvn clean verify` enforces 100% runtime line coverage with no production-code
+exclusions. JaCoCo's HTML and XML reports are written to `target/site/jacoco/`.
 
 ## License
 

@@ -3,6 +3,7 @@ package net.tfminecraft.marketblock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.block.Block;
@@ -24,7 +25,7 @@ public class Cache {
         if (stepId == null || stepId.isBlank()) {
             return 1.0;
         }
-        Double value = freshnessPrice.get(stepId.toLowerCase());
+        Double value = freshnessPrice.get(stepId.toLowerCase(Locale.ROOT));
         return value == null ? 1.0 : value;
     }
 

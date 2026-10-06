@@ -57,12 +57,18 @@ public class ChatListener implements Listener {
     private void answer(Player player, MarketblockConversation convo, String message) {
         switch (convo.getStep()) {
             case 0 -> {
-                if (TradeLoader.getTradeById(message) != null) {
+                // IDs are one YAML path segment and one /marketblock command argument.
+                String id = message.strip();
+                if (id.isEmpty() || id.contains(".") || id.chars().anyMatch(Character::isWhitespace)) {
+                    player.sendMessage("§cInvalid ID. Use a nonempty ID without dots or spaces.");
+                    return;
+                }
+                if (TradeLoader.getTradeById(id) != null) {
                     player.sendMessage("§cThat id is already taken");
                     return;
                 }
-                convo.setId(message);
-                player.sendMessage("§aID set to: " + message);
+                convo.setId(id);
+                player.sendMessage("§aID set to: " + id);
                 convo.nextStep();
                 player.sendMessage("§aEnter the demand limit:");
             }
@@ -113,15 +119,9 @@ public class ChatListener implements Listener {
             case 5 -> {
                 // Done! Claim the conversation first, so a quit that got there first stops the save.
                 if (!ConversationManager.finishConversation(player, convo)) return;
-                Category cat = CategoryLoader.getByString(message);
-                if (cat == null || cat.getId().equalsIgnoreCase("unknown")) {
-                    player.sendMessage("§cWarning, no category found, default selected");
-                }
-                convo.setCategory(cat);
-                player.sendMessage("§aCategory set to: " + cat.getId());
                 // Chat arrives on an async thread; trades and trades.yml belong to the main thread.
                 Bukkit.getScheduler().runTask(MarketBlock.plugin, () -> {
-                    if (!saveTrade(player, convo)) return;
+                    if (!saveTrade(player, convo, message)) return;
                     player.sendMessage("§aTrade successfully created!");
                 });
             }
@@ -133,7 +133,12 @@ public class ChatListener implements Listener {
         ConversationManager.endConversation(event.getPlayer());
     }
 
-    private boolean saveTrade(Player p, MarketblockConversation convo) {
+    private boolean saveTrade(Player p, MarketblockConversation convo, String categoryId) {
+        // The final answer and this queued task may straddle a permission change.
+        if (!p.hasPermission(CommandManager.ADMIN_PERMISSION)) {
+            p.sendMessage("§cYou do not have permission to create a trade.");
+            return false;
+        }
         String path = TLibs.getItemAPI().getChecker().getAsStringPath(convo.getItem());
         if(path == null) {
             p.sendMessage("§cCould not parse the item you are holding");
@@ -143,6 +148,17 @@ public class ChatListener implements Listener {
             p.sendMessage("§cA trade already exists with that id");
             return false;
         }
+        // Resolve after scheduling so a category reload cannot leave a trade on an obsolete object.
+        Category cat = CategoryLoader.getByString(categoryId);
+        if (cat == null) {
+            cat = new Category();
+            CategoryLoader.categories.put(cat.getId(), cat);
+        }
+        if (cat.getId().equalsIgnoreCase("unknown")) {
+            p.sendMessage("§cWarning, no category found, default selected");
+        }
+        convo.setCategory(cat);
+        p.sendMessage("§aCategory set to: " + cat.getId());
         TradeLoader.add(new Trade(convo));
         return true;
     }

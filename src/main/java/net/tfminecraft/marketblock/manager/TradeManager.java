@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -48,19 +49,13 @@ public class TradeManager implements Listener {
     }
 
     private String getItemId(MBGUI type, ItemStack i) {
-        NamespacedKey key;
-        switch (type) {
-            case CATEGORY:
-                key = new NamespacedKey(MarketBlock.plugin, "category_id");
-                break;
-            case TRADE:
-                key = new NamespacedKey(MarketBlock.plugin, "trade_id");
-                break;
-            default:
-                key = new NamespacedKey(MarketBlock.plugin, "none");
-                break;
-        }
-        return i.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        ItemMeta meta = i.getItemMeta();
+        if (meta == null) return null;
+        NamespacedKey key = new NamespacedKey(MarketBlock.plugin, switch (type) {
+            case CATEGORY -> "category_id";
+            case TRADE -> "trade_id";
+        });
+        return meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
     }
 
     public void start() {
@@ -104,6 +99,7 @@ public class TradeManager implements Listener {
     public void click(InventoryClickEvent e) {
         if(!(e.getView().getTopInventory().getHolder() instanceof MBHolder)) return;
         e.setCancelled(true);
+        if(e.getClickedInventory() != e.getView().getTopInventory()) return;
         Player p = (Player) e.getWhoClicked();
         MBHolder h = (MBHolder) e.getView().getTopInventory().getHolder();
         ItemStack i = e.getCurrentItem();
@@ -152,11 +148,15 @@ public class TradeManager implements Listener {
             return;
         }
         SaleTake take = InventoryUtils.removeItems(p, tradePath, requiredAmount);
+        if (take.total() == 0) {
+            p.sendMessage("§cThe market could not take the items for this trade.");
+            return;
+        }
         p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);
         double base = PriceCalculator.calculatePrice(trade);
         double price = applyFreshness(base, take);
         DenarEconomy.getMoneyManager().addMoney(p, price, false, true);
-        sendSaleBreakdown(p, take, requiredAmount, base, price);
+        sendSaleBreakdown(p, take, (int) requiredAmount, base, price);
         trade.sell();
         Bukkit.getPluginManager().callEvent(new MarketSaleEvent(p, trade, price, requiredAmount));
         update();
@@ -164,9 +164,6 @@ public class TradeManager implements Listener {
 
     private static double applyFreshness(double base, SaleTake take) {
         int taken = take.total();
-        if (taken <= 0) {
-            return Math.max(0.01, base);
-        }
         double weight = 0;
         for (var entry : take.getCounts().entrySet()) {
             weight += entry.getValue() * Cache.freshnessMultiplier(entry.getKey());
@@ -176,8 +173,8 @@ public class TradeManager implements Listener {
         return Math.max(0.01, price);
     }
 
-    private static void sendSaleBreakdown(Player p, SaleTake take, double amount, double base, double price) {
-        p.sendMessage("§aSold " + formatAmount(amount) + " for " + formatMoney(price) + "d");
+    private static void sendSaleBreakdown(Player p, SaleTake take, int amount, double base, double price) {
+        p.sendMessage("§aSold " + amount + " for " + formatMoney(price) + "d");
         if (take.allFresh()) {
             return;
         }
@@ -196,13 +193,6 @@ public class TradeManager implements Listener {
             p.sendMessage("§7  " + capitalize(entry.getKey()) + " x" + entry.getValue() + ": "
                     + Cache.freshnessPercent(entry.getKey()) + "%");
         }
-    }
-
-    private static String formatAmount(double amount) {
-        if (amount == Math.rint(amount)) {
-            return String.valueOf((long) amount);
-        }
-        return String.valueOf(amount);
     }
 
     private static String formatMoney(double value) {
