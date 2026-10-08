@@ -26,20 +26,16 @@ Technical documentation is maintained in [TF-Minecraft/Docs](https://github.com/
 
 ## Tests
 
-Install the pinned shared plugin dependencies, then run the build with Java 21:
+With Java 21 and the [pinned shared dependencies](https://github.com/TF-Minecraft/Docs/blob/main/projects/MarketBlock/README.md#build-and-dependencies)
+prepared, run `mvn clean verify`.
 
-```sh
-python3 path/to/TLibs/tools/install-plugins.py --pom pom.xml --mode pinned
-mvn clean verify
-```
-
-Point the installer at your TLibs checkout.
-
-Tests use JUnit, MockBukkit, and Mockito without a live Minecraft server. They
-cover trade creation, purchases, menus, persistence, demand recovery, and the
+Tests use JUnit 5, MockBukkit, and Mockito without a live Minecraft server. They
+cover trade creation, sales, menus, persistence, demand recovery, and the
 plugin lifecycle, including regressions for invalid quantities and stale state.
 `mvn clean verify` enforces 100% runtime line coverage with no production-code
-exclusions. JaCoCo's HTML and XML reports are written to `target/site/jacoco/`.
+exclusions. JaCoCo's HTML and XML reports are written to `target/site/jacoco/`;
+Surefire test results are in `target/surefire-reports/`. Live furniture, economy,
+and food-freshness integrations still need server testing.
 
 ## License
 
