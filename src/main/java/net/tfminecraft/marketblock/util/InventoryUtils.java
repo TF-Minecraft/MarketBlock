@@ -39,7 +39,9 @@ public class InventoryUtils {
         }
         double remaining = amountToRemove;
 
-        for (ItemStack item : p.getInventory().getContents()) {
+        ItemStack[] contents = p.getInventory().getContents();
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack item = contents[slot];
             if (item == null || item.getType().isAir()) continue;
 
             if (!TLibs.getItemAPI().getChecker().checkItemWithPath(item, path)) continue;
@@ -47,7 +49,7 @@ public class InventoryUtils {
             int stackAmount = item.getAmount();
             int taken = stackAmount <= remaining ? stackAmount : (int) remaining;
             take.add(FreshnessLookup.stepId(item), taken);
-            take.plan(item, taken);
+            take.plan(p.getInventory(), slot, taken);
             remaining -= taken;
 
             if (remaining <= 0) break;

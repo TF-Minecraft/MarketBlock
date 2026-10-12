@@ -101,6 +101,44 @@ class TradeManagerTest extends MarketTestSupport {
     }
 
     @Test
+    void replayingTheSameClickDoesNotSellAnotherBatch() {
+        trade("sale", 2);
+        var holder = openTrade();
+        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 5));
+        var event = clickEvent(tagged("trade_id", "sale"), player.getOpenInventory().getTopInventory());
+        manager.click(event);
+        manager.click(event);
+        assertEquals(3, player.getInventory().getItem(0).getAmount());
+        assertEquals(800, Denars.balance(Denars.pouch(seller)));
+    }
+
+    @Test
+    void interruptedPostingBlocksNewCallbacksAndSurvivesManagerRecreation() throws Exception {
+        trade("sale", 2);
+        var holder = openTrade();
+        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 5));
+        try (var denars = mockStatic(Denars.class, CALLS_REAL_METHODS)) {
+            denars.when(() -> Denars.earn(anyString(), eq(seller), anyString(), anyLong(), eq(true)))
+                    .thenAnswer(call -> {
+                        call.callRealMethod();
+                        throw new IllegalStateException("interrupted after posting");
+                    });
+            manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
+        }
+        assertEquals("§cThis sale needs staff review before you sell again.", player.nextMessage());
+        var intent = directory.resolve("pending-sales/" + player.getUniqueId() + ".properties");
+        String saved = java.nio.file.Files.readString(intent);
+        assertTrue(saved.contains("character=" + seller.characterId()));
+        manager = new TradeManager();
+        manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
+        assertEquals("§cThis sale needs staff review before you sell again.", player.nextMessage());
+        assertEquals(saved, java.nio.file.Files.readString(intent));
+        assertEquals(800, Denars.balance(Denars.pouch(seller)));
+        assertEquals(5, player.getInventory().getItem(0).getAmount());
+        server.getPluginManager().assertEventNotFired(MarketSaleEvent.class);
+    }
+
+    @Test
     void freshSalesAndUnknownFreshnessHaveAccurateMessagesAndRounding() {
         var trade = trade("sale", 2);
         var holder = openTrade();

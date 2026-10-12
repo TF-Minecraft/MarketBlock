@@ -1,6 +1,8 @@
 package net.tfminecraft.marketblock.manager;
 
 import java.util.Optional;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -40,6 +42,7 @@ import net.tfminecraft.tlibs.character.CharacterRef;
 public class TradeManager implements Listener {
     InventoryManager inv = new InventoryManager();
     private BukkitTask demandTask;
+    private final Map<InventoryClickEvent, Boolean> handledSales = new WeakHashMap<>();
 
     public void update() {
         for(Player p : Bukkit.getOnlinePlayers()) {
@@ -136,6 +139,7 @@ public class TradeManager implements Listener {
             return;
         }
 
+        if (e != null && handledSales.put(e, true) != null) return;
         String id = getItemId(h.getType(), i);
         if (id == null) return;
 
@@ -158,7 +162,7 @@ public class TradeManager implements Listener {
             return;
         }
         SaleTake take = InventoryUtils.planTake(p, tradePath, requiredAmount);
-        if (take.total() == 0) {
+        if (take.total() != requiredAmount) {
             p.sendMessage("§cThe market could not take the items for this trade.");
             return;
         }
@@ -166,8 +170,15 @@ public class TradeManager implements Listener {
         double price = applyFreshness(base, take);
         long cents = Math.round(price * 100);
         long tax = Denars.taxFor(seller.get(), cents);
-        if (new MarketSale(seller.get(), take, cents).settle() != Result.APPLIED) {
-            p.sendMessage("§cThe market could not pay you, so it kept nothing.");
+        try {
+            if (new MarketSale(MarketBlock.plugin.getDataFolder().toPath().resolve("pending-sales"),
+                    seller.get(), take, cents).settle() != Result.APPLIED) {
+                p.sendMessage("§cThe market could not pay you, so it kept nothing.");
+                return;
+            }
+        } catch (Exception failure) {
+            MarketBlock.plugin.getLogger().warning("Sale needs review for " + p.getUniqueId() + ": " + failure);
+            p.sendMessage("§cThis sale needs staff review before you sell again.");
             return;
         }
         p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);

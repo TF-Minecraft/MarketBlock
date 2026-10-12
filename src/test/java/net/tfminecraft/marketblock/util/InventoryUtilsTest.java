@@ -137,6 +137,7 @@ class InventoryUtilsTest {
         when(owner.getInventory()).thenReturn(inventory);
         ItemStack stack = new ItemStack(Material.CARROT, Integer.MAX_VALUE);
         when(inventory.getContents()).thenReturn(new ItemStack[] {stack});
+        when(inventory.getItem(0)).thenReturn(stack);
         assertTrue(InventoryUtils.hasEnough(owner, PATH, Integer.MAX_VALUE));
         SaleTake taken = remove(owner, PATH, Integer.MAX_VALUE);
         assertEquals(Integer.MAX_VALUE, taken.total());
