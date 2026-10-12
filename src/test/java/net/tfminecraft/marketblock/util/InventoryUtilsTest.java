@@ -69,7 +69,7 @@ class InventoryUtilsTest {
         assertNotNull(new InventoryUtils());
         assertEquals(0, InventoryUtils.getTotalAmount(player, PATH));
         assertFalse(InventoryUtils.hasEnough(player, PATH, 1));
-        assertEquals(0, InventoryUtils.removeItems(player, PATH, 1).total());
+        assertEquals(0, remove(player, PATH, 1).total());
         verifyNoInteractions(checker);
         freshness.verifyNoInteractions();
     }
@@ -82,7 +82,7 @@ class InventoryUtilsTest {
         when(inventory.getContents()).thenReturn(new ItemStack[] {null, new ItemStack(Material.AIR)});
 
         assertEquals(0, InventoryUtils.getTotalAmount(owner, PATH));
-        assertEquals(0, InventoryUtils.removeItems(owner, PATH, 1).total());
+        assertEquals(0, remove(owner, PATH, 1).total());
         verifyNoInteractions(checker);
         freshness.verifyNoInteractions();
     }
@@ -122,7 +122,7 @@ class InventoryUtilsTest {
         put(2, Material.POTATO, 5);
         ItemStack[] before = snapshot();
 
-        SaleTake taken = InventoryUtils.removeItems(player, PATH, amount);
+        SaleTake taken = remove(player, PATH, amount);
 
         assertEquals(Map.of(), taken.getCounts());
         assertArrayEquals(before, player.getInventory().getContents());
@@ -137,8 +137,9 @@ class InventoryUtilsTest {
         when(owner.getInventory()).thenReturn(inventory);
         ItemStack stack = new ItemStack(Material.CARROT, Integer.MAX_VALUE);
         when(inventory.getContents()).thenReturn(new ItemStack[] {stack});
+        when(inventory.getItem(0)).thenReturn(stack);
         assertTrue(InventoryUtils.hasEnough(owner, PATH, Integer.MAX_VALUE));
-        SaleTake taken = InventoryUtils.removeItems(owner, PATH, Integer.MAX_VALUE);
+        SaleTake taken = remove(owner, PATH, Integer.MAX_VALUE);
         assertEquals(Integer.MAX_VALUE, taken.total());
         assertEquals(0, stack.getAmount());
     }
@@ -148,7 +149,7 @@ class InventoryUtilsTest {
         put(0, Material.CARROT, 10);
         put(1, Material.POTATO, 4);
 
-        SaleTake taken = InventoryUtils.removeItems(player, PATH, 3);
+        SaleTake taken = remove(player, PATH, 3);
 
         assertEquals(Map.of("fresh", 3), taken.getCounts());
         assertEquals(7, player.getInventory().getItem(0).getAmount());
@@ -161,7 +162,7 @@ class InventoryUtilsTest {
         put(0, Material.CARROT, 3);
         put(1, Material.POTATO, 4);
 
-        SaleTake taken = InventoryUtils.removeItems(player, PATH, 3);
+        SaleTake taken = remove(player, PATH, 3);
 
         assertEquals(Map.of("fresh", 3), taken.getCounts());
         assertEquals(0, player.getInventory().getItem(0).getAmount());
@@ -176,7 +177,7 @@ class InventoryUtilsTest {
         put(4, Material.POTATO, 5);
         put(5, Material.CARROT, 7);
 
-        SaleTake taken = InventoryUtils.removeItems(player, PATH, 4);
+        SaleTake taken = remove(player, PATH, 4);
 
         assertEquals(Map.of("fresh", 2, "stale", 2), taken.getCounts());
         assertEquals(4, taken.total());
@@ -194,7 +195,7 @@ class InventoryUtilsTest {
         put(3, Material.POTATO, 3);
 
         assertFalse(InventoryUtils.hasEnough(player, PATH, 8));
-        SaleTake taken = InventoryUtils.removeItems(player, PATH, 8);
+        SaleTake taken = remove(player, PATH, 8);
 
         assertEquals(Map.of("fresh", 2, "stale", 3), taken.getCounts());
         assertEquals(5, taken.total());
@@ -208,9 +209,30 @@ class InventoryUtilsTest {
         put(1, Material.POTATO, 3);
         ItemStack[] before = snapshot();
 
-        assertEquals(0, InventoryUtils.removeItems(player, "food.other", 1).total());
+        assertEquals(0, remove(player, "food.other", 1).total());
         assertArrayEquals(before, player.getInventory().getContents());
         freshness.verifyNoInteractions();
+    }
+
+    @Test
+    void planningASaleLeavesTheInventoryUntilItIsApplied() {
+        put(0, Material.CARROT, 2);
+        put(1, Material.POTATO, 3);
+        ItemStack[] before = snapshot();
+
+        SaleTake plan = InventoryUtils.planTake(player, PATH, 4);
+
+        assertEquals(Map.of("fresh", 2, "stale", 2), plan.getCounts());
+        assertArrayEquals(before, player.getInventory().getContents());
+        plan.apply();
+        assertEquals(0, player.getInventory().getItem(0).getAmount());
+        assertEquals(1, player.getInventory().getItem(1).getAmount());
+    }
+
+    private static SaleTake remove(Player owner, String path, double amount) {
+        SaleTake take = InventoryUtils.planTake(owner, path, amount);
+        take.apply();
+        return take;
     }
 
     private void put(int slot, Material material, int amount) {
