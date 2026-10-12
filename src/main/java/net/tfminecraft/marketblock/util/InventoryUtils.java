@@ -26,7 +26,11 @@ public class InventoryUtils {
                 && getTotalAmount(p, path) >= requiredAmount;
     }
 
-    public static SaleTake removeItems(Player p, String path, double amountToRemove) {
+    /**
+     * Plans which matching stacks a sale would take, without changing the inventory. Call
+     * {@link SaleTake#apply()} to take them.
+     */
+    public static SaleTake planTake(Player p, String path, double amountToRemove) {
         SaleTake take = new SaleTake();
         if (!Double.isFinite(amountToRemove) || amountToRemove <= 0
                 || amountToRemove > Integer.MAX_VALUE
@@ -43,14 +47,8 @@ public class InventoryUtils {
             int stackAmount = item.getAmount();
             int taken = stackAmount <= remaining ? stackAmount : (int) remaining;
             take.add(FreshnessLookup.stepId(item), taken);
-
-            if (stackAmount <= remaining) {
-                remaining -= stackAmount;
-                item.setAmount(0);
-            } else {
-                item.setAmount(stackAmount - taken);
-                remaining = 0;
-            }
+            take.plan(item, taken);
+            remaining -= taken;
 
             if (remaining <= 0) break;
         }

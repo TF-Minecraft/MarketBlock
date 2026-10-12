@@ -1,5 +1,7 @@
 package net.tfminecraft.marketblock.manager;
 
+import java.util.Optional;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -19,18 +21,21 @@ import org.bukkit.scheduler.BukkitTask;
 
 import net.tfminecraft.marketblock.Cache;
 import net.tfminecraft.marketblock.MarketBlock;
-import net.tfminecraft.denareconomy.DenarEconomy;
+import net.tfminecraft.denareconomy.api.Denars;
+import net.tfminecraft.denareconomy.api.Result;
 import net.tfminecraft.marketblock.events.MarketSaleEvent;
 import net.tfminecraft.marketblock.inventory.holder.MBGUI;
 import net.tfminecraft.marketblock.inventory.holder.MBHolder;
 import net.tfminecraft.marketblock.loader.CategoryLoader;
 import net.tfminecraft.marketblock.loader.TradeLoader;
 import net.tfminecraft.marketblock.trade.Category;
+import net.tfminecraft.marketblock.trade.MarketSale;
 import net.tfminecraft.marketblock.trade.Trade;
 import net.tfminecraft.marketblock.util.DemandSchedule;
 import net.tfminecraft.marketblock.util.InventoryUtils;
 import net.tfminecraft.marketblock.util.PriceCalculator;
 import net.tfminecraft.marketblock.util.SaleTake;
+import net.tfminecraft.tlibs.character.CharacterRef;
 
 public class TradeManager implements Listener {
     InventoryManager inv = new InventoryManager();
@@ -147,16 +152,29 @@ public class TradeManager implements Listener {
             p.sendMessage("§cYou don't have enough items for this trade.");
             return;
         }
-        SaleTake take = InventoryUtils.removeItems(p, tradePath, requiredAmount);
+        Optional<CharacterRef> seller = Denars.active(p);
+        if (seller.isEmpty()) {
+            p.sendMessage("§cChoose a character before you sell.");
+            return;
+        }
+        SaleTake take = InventoryUtils.planTake(p, tradePath, requiredAmount);
         if (take.total() == 0) {
             p.sendMessage("§cThe market could not take the items for this trade.");
             return;
         }
-        p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);
         double base = PriceCalculator.calculatePrice(trade);
         double price = applyFreshness(base, take);
-        DenarEconomy.getMoneyManager().addMoney(p, price, false, true);
+        long cents = Math.round(price * 100);
+        long tax = Denars.taxFor(seller.get(), cents);
+        if (new MarketSale(seller.get(), take, cents).settle() != Result.APPLIED) {
+            p.sendMessage("§cThe market could not pay you, so it kept nothing.");
+            return;
+        }
+        p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);
         sendSaleBreakdown(p, take, (int) requiredAmount, base, price);
+        if (tax > 0) {
+            p.sendMessage("§7  Tax: " + formatMoney(tax / 100.0) + "d");
+        }
         trade.sell();
         Bukkit.getPluginManager().callEvent(new MarketSaleEvent(p, trade, price, requiredAmount));
         update();

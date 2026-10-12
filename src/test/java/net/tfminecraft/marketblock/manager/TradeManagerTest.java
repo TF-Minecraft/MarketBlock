@@ -5,10 +5,11 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.tfminecraft.denareconomy.DenarEconomy;
-import net.tfminecraft.denareconomy.managers.MoneyManager;
+import net.tfminecraft.denareconomy.api.Denars;
+import net.tfminecraft.denareconomy.api.Result;
 import net.tfminecraft.marketblock.Cache;
 import net.tfminecraft.marketblock.MarketTestSupport;
+import net.tfminecraft.marketblock.TestMoney;
 import net.tfminecraft.marketblock.events.MarketSaleEvent;
 import net.tfminecraft.marketblock.inventory.holder.MBGUI;
 import net.tfminecraft.marketblock.inventory.holder.MBHolder;
@@ -20,6 +21,7 @@ import net.tfminecraft.marketblock.util.FreshnessLookup;
 import net.tfminecraft.marketblock.util.InventoryUtils;
 import net.tfminecraft.marketblock.util.SaleTake;
 import net.tfminecraft.tlibs.TLibs;
+import net.tfminecraft.tlibs.character.CharacterRef;
 import net.tfminecraft.tlibs.objects.api.BlockAPI;
 import net.tfminecraft.tlibs.objects.api.subapi.BlockChecker;
 import org.bukkit.Bukkit;
@@ -34,6 +36,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
@@ -42,10 +45,14 @@ class TradeManagerTest extends MarketTestSupport {
     private TradeManager manager;
     private PlayerMock player;
     private Category category;
+    private TestMoney money;
+    private CharacterRef seller;
 
     @BeforeEach
     void prepareMarket() {
         player = server.addPlayer();
+        money = TestMoney.open(directory);
+        seller = money.play(player);
         manager = new TradeManager();
         category = new Category();
         CategoryLoader.categories.put(category.getId(), category);
@@ -57,42 +64,47 @@ class TradeManagerTest extends MarketTestSupport {
         when(checker.checkItemWithPath(any(), eq("v.carrot"))).thenAnswer(i -> i.<ItemStack>getArgument(0).getType() == Material.CARROT);
     }
 
+    @AfterEach
+    void closeLedger() {
+        TestMoney.close();
+    }
+
     @Test
-    void successfulSaleConsumesGoodsPaysOnceAndPublishesMatchingEvent() {
+    void successfulSaleConsumesGoodsPaysTheSellingCharacterOnceAndPublishesMatchingEvent() {
         var trade = trade("sale", 4);
+        String taxes = TestMoney.taxAt(10);
         player.getInventory().setItem(0, new ItemStack(Material.CARROT, 2));
         player.getInventory().setItem(1, new ItemStack(Material.CARROT, 4));
         var holder = openTrade();
-        var money = mock(MoneyManager.class);
-        try (var economy = mockStatic(DenarEconomy.class); var freshness = mockStatic(FreshnessLookup.class)) {
-            economy.when(DenarEconomy::getMoneyManager).thenReturn(money);
+        try (var freshness = mockStatic(FreshnessLookup.class)) {
             freshness.when(() -> FreshnessLookup.stepId(any())).thenReturn("stale", "fresh");
             manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
-            verify(money).addMoney(player, 6.0, false, true);
-            assertEquals(0, player.getInventory().getItem(0).getAmount());
-            assertEquals(2, player.getInventory().getItem(1).getAmount());
-            assertEquals("§aSold 4 for 6d", player.nextMessage());
-            assertEquals("§7  Base: 8d", player.nextMessage());
-            assertEquals("§7  Fresh x2: 100%", player.nextMessage());
-            assertEquals("§7  Stale x2: 50%", player.nextMessage());
-            var events = server.getPluginManager().getFiredEvents().filter(MarketSaleEvent.class::isInstance).map(MarketSaleEvent.class::cast).toList();
-            assertEquals(1, events.size());
-            var event = events.getFirst();
-            assertSame(player, event.getPlayer());
-            assertSame(trade, event.getTrade());
-            assertEquals(6, event.getPrice());
-            assertEquals(4, event.getAmount());
-            assertSame(MarketSaleEvent.getHandlerList(), event.getHandlers());
         }
+        assertEquals(540, Denars.balance(Denars.pouch(seller)));
+        assertEquals(60, Denars.balance(taxes));
+        assertEquals(0, player.getInventory().getItem(0).getAmount());
+        assertEquals(2, player.getInventory().getItem(1).getAmount());
+        assertEquals("§aSold 4 for 6d", player.nextMessage());
+        assertEquals("§7  Base: 8d", player.nextMessage());
+        assertEquals("§7  Fresh x2: 100%", player.nextMessage());
+        assertEquals("§7  Stale x2: 50%", player.nextMessage());
+        assertEquals("§7  Tax: 0.6d", player.nextMessage());
+        assertNull(player.nextMessage());
+        var events = server.getPluginManager().getFiredEvents().filter(MarketSaleEvent.class::isInstance).map(MarketSaleEvent.class::cast).toList();
+        assertEquals(1, events.size());
+        var event = events.getFirst();
+        assertSame(player, event.getPlayer());
+        assertSame(trade, event.getTrade());
+        assertEquals(6, event.getPrice());
+        assertEquals(4, event.getAmount());
+        assertSame(MarketSaleEvent.getHandlerList(), event.getHandlers());
     }
 
     @Test
     void freshSalesAndUnknownFreshnessHaveAccurateMessagesAndRounding() {
         var trade = trade("sale", 2);
         var holder = openTrade();
-        var money = mock(MoneyManager.class);
-        try (var economy = mockStatic(DenarEconomy.class); var freshness = mockStatic(FreshnessLookup.class)) {
-            economy.when(DenarEconomy::getMoneyManager).thenReturn(money);
+        try (var freshness = mockStatic(FreshnessLookup.class)) {
             freshness.when(() -> FreshnessLookup.stepId(any())).thenReturn("fresh", "custom");
             for (String step : List.of("fresh", "custom")) {
                 trade.setDemand(1.234);
@@ -105,20 +117,51 @@ class TradeManagerTest extends MarketTestSupport {
                 }
                 assertNull(player.nextMessage());
             }
-            verify(money, times(2)).addMoney(player, 0.99, false, true);
         }
+        assertEquals(198, Denars.balance(Denars.pouch(seller)));
+    }
+
+    @Test
+    void aSellerWithNoCurrentCharacterIsRefusedAndKeepsTheGoods() {
+        trade("sale", 2);
+        money.stop(player);
+        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 3));
+        manager.tradeClick(player, openTrade(), tagged("trade_id", "sale"), null);
+        assertEquals("§cChoose a character before you sell.", player.nextMessage());
+        assertNull(player.nextMessage());
+        assertEquals(3, player.getInventory().getItem(0).getAmount());
+        assertEquals(0, Denars.balance(Denars.pouch(seller)));
+        server.getPluginManager().assertEventNotFired(MarketSaleEvent.class);
+    }
+
+    @Test
+    void aRefusedOrUnavailablePaymentTakesNothing() {
+        trade("sale", 2);
+        var holder = openTrade();
+        String pouch = Denars.pouch(seller);
+        assertEquals(Result.APPLIED, Denars.transfer("fund", "staff:test", Denars.MINT, pouch, Long.MAX_VALUE - 1));
+        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 3));
+        manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
+        assertEquals("§cThe market could not pay you, so it kept nothing.", player.nextMessage());
+        assertEquals(Long.MAX_VALUE - 1, Denars.balance(pouch));
+        TestMoney.close();
+        manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
+        assertEquals("§cThe market could not pay you, so it kept nothing.", player.nextMessage());
+        assertNull(player.nextMessage());
+        assertEquals(3, player.getInventory().getItem(0).getAmount());
+        server.getPluginManager().assertEventNotFired(MarketSaleEvent.class);
     }
 
     @Test
     void anEmptyRemovalCannotPayEvenIfTheInventoryCheckPreviouslySucceeded() {
         trade("sale", 2);
         var holder = openTrade();
-        try (var inventory = mockStatic(InventoryUtils.class); var economy = mockStatic(DenarEconomy.class)) {
+        try (var inventory = mockStatic(InventoryUtils.class)) {
             inventory.when(() -> InventoryUtils.hasEnough(player, "v.carrot", 2)).thenReturn(true);
-            inventory.when(() -> InventoryUtils.removeItems(player, "v.carrot", 2)).thenReturn(new SaleTake());
+            inventory.when(() -> InventoryUtils.planTake(player, "v.carrot", 2)).thenReturn(new SaleTake());
             manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
             assertEquals("§cThe market could not take the items for this trade.", player.nextMessage());
-            economy.verifyNoInteractions();
+            assertEquals(0, Denars.balance(Denars.pouch(seller)));
             server.getPluginManager().assertEventNotFired(MarketSaleEvent.class);
         }
     }
@@ -132,13 +175,11 @@ class TradeManagerTest extends MarketTestSupport {
         take.getCounts().put("fresh", 0);
         take.getCounts().put("unknown", 0);
         take.getCounts().put(null, 2);
-        var money = mock(MoneyManager.class);
-        try (var inventory = mockStatic(InventoryUtils.class); var economy = mockStatic(DenarEconomy.class)) {
+        try (var inventory = mockStatic(InventoryUtils.class)) {
             inventory.when(() -> InventoryUtils.hasEnough(player, "v.carrot", 2)).thenReturn(true);
-            inventory.when(() -> InventoryUtils.removeItems(player, "v.carrot", 2)).thenReturn(take);
-            economy.when(DenarEconomy::getMoneyManager).thenReturn(money);
+            inventory.when(() -> InventoryUtils.planTake(player, "v.carrot", 2)).thenReturn(take);
             manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
-            verify(money).addMoney(player, 8.0, false, true);
+            assertEquals(800, Denars.balance(Denars.pouch(seller)));
             assertEquals("§aSold 2 for 8d", player.nextMessage());
             assertEquals("§7  Base: 8d", player.nextMessage());
             assertEquals("§7  Fresh x2: 100%", player.nextMessage());
@@ -150,21 +191,19 @@ class TradeManagerTest extends MarketTestSupport {
     void missingGoodsInvalidAmountsDeletedOffersAndDecorationsDoNotPay() {
         trade("sale", 2);
         var holder = openTrade();
-        try (var economy = mockStatic(DenarEconomy.class)) {
-            manager.tradeClick(player, holder, new ItemStack(Material.STONE), null);
-            manager.tradeClick(player, holder, tagged("trade_id", "missing"), null);
-            assertEquals("§cThe market no longer buys this.", player.nextMessage());
+        manager.tradeClick(player, holder, new ItemStack(Material.STONE), null);
+        manager.tradeClick(player, holder, tagged("trade_id", "missing"), null);
+        assertEquals("§cThe market no longer buys this.", player.nextMessage());
+        manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
+        assertEquals("§cYou don't have enough items for this trade.", player.nextMessage());
+        for (double amount : new double[] {0, -1, 0.5, Double.NaN, Double.POSITIVE_INFINITY}) {
+            trade("sale", amount);
+            player.getInventory().setItem(0, new ItemStack(Material.CARROT, 3));
             manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
+            assertEquals(3, player.getInventory().getItem(0).getAmount());
             assertEquals("§cYou don't have enough items for this trade.", player.nextMessage());
-            for (double amount : new double[] {0, -1, 0.5, Double.NaN, Double.POSITIVE_INFINITY}) {
-                trade("sale", amount);
-                player.getInventory().setItem(0, new ItemStack(Material.CARROT, 3));
-                manager.tradeClick(player, holder, tagged("trade_id", "sale"), null);
-                assertEquals(3, player.getInventory().getItem(0).getAmount());
-                assertEquals("§cYou don't have enough items for this trade.", player.nextMessage());
-            }
-            economy.verifyNoInteractions();
         }
+        assertEquals(0, Denars.balance(Denars.pouch(seller)));
     }
 
     @Test
