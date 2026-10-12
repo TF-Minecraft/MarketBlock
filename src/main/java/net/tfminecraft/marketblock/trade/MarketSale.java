@@ -43,6 +43,7 @@ public final class MarketSale {
     /** Pays the seller's pouch from the mint, taxed, then takes the goods if the payment applied. */
     public Result settle() throws IOException {
         if (taken) return Result.APPLIED;
+        if (!recorded && !Denars.taxReady()) return Result.UNAVAILABLE;
         if (!recorded) record();
         Result result = Denars.status(opId).orElseGet(
                 () -> Denars.earn(opId, seller, Denars.pouch(seller), cents, true));

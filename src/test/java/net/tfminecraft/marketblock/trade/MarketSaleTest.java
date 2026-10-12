@@ -116,4 +116,17 @@ class MarketSaleTest {
         assertEquals(3, player.getInventory().getItem(0).getAmount());
     }
 
+
+    @Test void waitingForFactionTaxDoesNotCreateAnAmbiguousSale() throws Exception {
+        var seller=money.play(player);
+        MockBukkit.createMockPlugin("SimpleFactions");
+        player.getInventory().setItem(0,new ItemStack(Material.CARROT,5));
+        var sale=new MarketSale(folder.resolve("sales"),seller,InventoryUtils.planTake(player,"v.carrot",2),250);
+        assertEquals(Result.UNAVAILABLE,sale.settle());
+        assertFalse(java.nio.file.Files.exists(folder.resolve("sales")));
+        assertEquals(5,player.getInventory().getItem(0).getAmount());
+        TestMoney.taxAt(20);
+        assertEquals(Result.APPLIED,sale.settle());
+        assertEquals(200,Denars.balance(Denars.pouch(seller)));
+    }
 }
