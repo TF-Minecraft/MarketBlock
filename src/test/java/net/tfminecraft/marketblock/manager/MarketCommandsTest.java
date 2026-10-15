@@ -97,10 +97,21 @@ class MarketCommandsTest extends MarketTestSupport {
         when(command.getName()).thenReturn("marketblock");
         assertTrue(completion.onTabComplete(sender, command, "", new String[] {""}).isEmpty());
         when(sender.hasPermission(CommandManager.ADMIN_PERMISSION)).thenReturn(true);
-        assertEquals(List.of("reload", "reset", "resetall"), completion.onTabComplete(sender, command, "", new String[] {"RE"}));
+        assertEquals(List.of("reload"), completion.onTabComplete(sender, command, "", new String[] {"RE"}));
+        assertEquals(List.of("reload"), completion.onTabComplete(sender, command, "", new String[] {""}));
+        var player = server.addPlayer();
+        player.setOp(true);
+        assertEquals(List.of("reload", "reset", "resetall"), completion.onTabComplete(player, command, "", new String[] {"RE"}));
         TradeLoader.getTrades().put("oak", new Trade("oak", new Category(), 2, 20, 1, "v.oak_log", 2, 64, 0));
-        assertEquals(List.of("oak"), completion.onTabComplete(sender, command, "", new String[] {"delete", ""}));
-        assertEquals(List.of("oak"), completion.onTabComplete(sender, command, "", new String[] {"reset", ""}));
+        assertEquals(List.of("oak"), completion.onTabComplete(player, command, "", new String[] {"delete", ""}));
+        assertEquals(List.of("oak"), completion.onTabComplete(player, command, "", new String[] {"reset", ""}));
+        TradeLoader.getTrades().put("Iron", new Trade("Iron", new Category(), 2, 20, 1, "v.iron_ingot", 2, 64, 0));
+        for (String action : List.of("delete", "reset")) {
+            assertEquals(List.of("oak"), completion.onTabComplete(player, command, "", new String[] {action, "O"}));
+            assertEquals(List.of("Iron"), completion.onTabComplete(player, command, "", new String[] {action, "ir"}));
+            assertTrue(completion.onTabComplete(player, command, "", new String[] {action, "zzz"}).isEmpty());
+            assertTrue(completion.onTabComplete(sender, command, "", new String[] {action, ""}).isEmpty());
+        }
         assertTrue(completion.onTabComplete(sender, command, "", new String[] {"add", ""}).isEmpty());
         assertTrue(completion.onTabComplete(sender, command, "", new String[0]).isEmpty());
         assertTrue(completion.onTabComplete(sender, command, "", new String[] {"reset", "oak", "extra"}).isEmpty());

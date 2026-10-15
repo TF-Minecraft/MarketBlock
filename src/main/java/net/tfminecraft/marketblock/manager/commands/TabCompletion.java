@@ -5,9 +5,11 @@ import net.tfminecraft.marketblock.manager.CommandManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class TabCompletion implements TabCompleter {
 
@@ -19,8 +21,9 @@ public class TabCompletion implements TabCompleter {
         if (!sender.hasPermission(CommandManager.ADMIN_PERMISSION)) return completions;
 
         if (args.length == 1) {
-            String prefix = args[0].toLowerCase();
+            String prefix = args[0].toLowerCase(Locale.ROOT);
             for (String sub : new String[] { "add", "delete", "reload", "reset", "resetall" }) {
+                if (!(sender instanceof Player) && !sub.equals("reload")) continue;
                 if (sub.startsWith(prefix)) {
                     completions.add(sub);
                 }
@@ -28,11 +31,12 @@ public class TabCompletion implements TabCompleter {
             return completions;
         }
 
-        if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
-            completions.addAll(TradeLoader.getTrades().keySet());
-        }
-        if (args.length == 2 && args[0].equalsIgnoreCase("reset")) {
-            completions.addAll(TradeLoader.getTrades().keySet());
+        if (sender instanceof Player && args.length == 2
+                && (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("reset"))) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            for (String id : TradeLoader.getTrades().keySet()) {
+                if (id.toLowerCase(Locale.ROOT).startsWith(prefix)) completions.add(id);
+            }
         }
 
         return completions;
