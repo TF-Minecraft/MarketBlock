@@ -7,7 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.tfminecraft.denareconomy.api.Denars;
 import net.tfminecraft.denareconomy.api.Result;
@@ -20,6 +22,9 @@ import net.tfminecraft.tlibs.character.CharacterRef;
  * after the payment is applied.
  */
 public final class MarketSale {
+    /** Sale folders whose entry in their parent folder this server run has flushed to disk. */
+    private static final Set<Path> FLUSHED_FOLDERS = ConcurrentHashMap.newKeySet();
+
     private final String opId;
     private final CharacterRef seller;
     private final SaleTake take;
@@ -53,15 +58,24 @@ public final class MarketSale {
         }
         if (result == Result.APPLIED || result == Result.REFUSED) {
             Files.deleteIfExists(intent);
+            // Must stay: an intent that comes back after a crash blocks the seller's next sale (CREATE_NEW).
             syncDirectory();
         }
         return result;
     }
 
     private void record() throws IOException {
-        Files.createDirectories(intent.getParent());
-        try (FileChannel parent = FileChannel.open(intent.getParent().getParent(), StandardOpenOption.READ)) {
-            parent.force(true);
+        Path folder = intent.getParent();
+        Path key = folder.toAbsolutePath().normalize();
+        boolean created = !Files.isDirectory(folder);
+        if (created) {
+            Files.createDirectories(folder);
+        }
+        // A new folder survives a crash only once its parent is flushed. An existing one is flushed once per
+        // run, in case the flush after it was made failed; after that its entry is already on disk.
+        if (created || !FLUSHED_FOLDERS.contains(key)) {
+            force(folder.getParent());
+            FLUSHED_FOLDERS.add(key);
         }
         Properties data = new Properties();
         data.setProperty("operation", opId);
@@ -80,8 +94,12 @@ public final class MarketSale {
     }
 
     private void syncDirectory() throws IOException {
-        try (FileChannel directory = FileChannel.open(intent.getParent(), StandardOpenOption.READ)) {
-            directory.force(true);
+        force(intent.getParent());
+    }
+
+    static void force(Path directory) throws IOException {
+        try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
+            channel.force(true);
         }
     }
 }

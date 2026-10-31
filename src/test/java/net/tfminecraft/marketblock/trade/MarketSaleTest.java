@@ -117,6 +117,38 @@ class MarketSaleTest {
     }
 
 
+    @Test
+    void theParentFolderIsFlushedOnlyForANewSaleFolderOrOnceARunForAnExistingOne() throws Exception {
+        var seller = money.play(player);
+        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 12));
+        Path sales = folder.resolve("sales");
+        Path existing = java.nio.file.Files.createDirectories(folder.resolve("existing"));
+        try (var flushes = mockStatic(MarketSale.class, CALLS_REAL_METHODS)) {
+            flushes.when(() -> MarketSale.force(any(Path.class))).thenAnswer(call -> null);
+
+            assertEquals(Result.APPLIED, sell(sales, seller));
+            assertEquals(Result.APPLIED, sell(sales, seller));
+            flushes.verify(() -> MarketSale.force(folder), times(1));
+            // Each sale still flushes its intent being written and being removed.
+            flushes.verify(() -> MarketSale.force(sales), times(4));
+
+            assertEquals(Result.APPLIED, sell(existing, seller));
+            assertEquals(Result.APPLIED, sell(existing, seller));
+            flushes.verify(() -> MarketSale.force(folder), times(2));
+
+            java.nio.file.Files.delete(sales);
+            assertEquals(Result.APPLIED, sell(sales, seller));
+            flushes.verify(() -> MarketSale.force(folder), times(3));
+            assertTrue(java.nio.file.Files.isDirectory(sales));
+        }
+        assertEquals(2, player.getInventory().getItem(0).getAmount());
+        assertEquals(500, Denars.balance(Denars.pouch(seller)));
+    }
+
+    private Result sell(Path sales, net.tfminecraft.tlibs.character.CharacterRef seller) throws Exception {
+        return new MarketSale(sales, seller, InventoryUtils.planTake(player, "v.carrot", 2), 100).settle();
+    }
+
     @Test void waitingForFactionTaxDoesNotCreateAnAmbiguousSale() throws Exception {
         var seller=money.play(player);
         MockBukkit.createMockPlugin("SimpleFactions");
