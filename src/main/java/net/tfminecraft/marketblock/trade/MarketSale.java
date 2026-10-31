@@ -69,6 +69,8 @@ public final class MarketSale {
         Path key = folder.toAbsolutePath().normalize();
         boolean created = !Files.isDirectory(folder);
         if (created) {
+            // A recreated folder is a new entry: forget the earlier flush until this one succeeds.
+            FLUSHED_FOLDERS.remove(key);
             Files.createDirectories(folder);
         }
         // A new folder survives a crash only once its parent is flushed. An existing one is flushed once per

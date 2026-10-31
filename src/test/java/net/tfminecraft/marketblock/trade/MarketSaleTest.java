@@ -120,7 +120,7 @@ class MarketSaleTest {
     @Test
     void theParentFolderIsFlushedOnlyForANewSaleFolderOrOnceARunForAnExistingOne() throws Exception {
         var seller = money.play(player);
-        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 12));
+        player.getInventory().setItem(0, new ItemStack(Material.CARROT, 14));
         Path sales = folder.resolve("sales");
         Path existing = java.nio.file.Files.createDirectories(folder.resolve("existing"));
         try (var flushes = mockStatic(MarketSale.class, CALLS_REAL_METHODS)) {
@@ -140,9 +140,17 @@ class MarketSaleTest {
             assertEquals(Result.APPLIED, sell(sales, seller));
             flushes.verify(() -> MarketSale.force(folder), times(3));
             assertTrue(java.nio.file.Files.isDirectory(sales));
+
+            // A recreated folder whose flush fails is flushed again by the next sale, before it pays.
+            java.nio.file.Files.delete(sales);
+            flushes.when(() -> MarketSale.force(folder)).thenThrow(new java.io.IOException("simulated parent flush failure"));
+            assertThrows(java.io.IOException.class, () -> sell(sales, seller));
+            flushes.when(() -> MarketSale.force(folder)).thenAnswer(call -> null);
+            assertEquals(Result.APPLIED, sell(sales, seller));
+            flushes.verify(() -> MarketSale.force(folder), times(5));
         }
         assertEquals(2, player.getInventory().getItem(0).getAmount());
-        assertEquals(500, Denars.balance(Denars.pouch(seller)));
+        assertEquals(600, Denars.balance(Denars.pouch(seller)));
     }
 
     private Result sell(Path sales, net.tfminecraft.tlibs.character.CharacterRef seller) throws Exception {
